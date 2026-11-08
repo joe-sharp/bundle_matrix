@@ -300,6 +300,34 @@ RSpec.describe(BundleMatrix::Planner) do
 
         expect(plan.invocation.values("path")).to eq(["vendor/local_gem"])
       end
+
+      it "forwards relative install paths unchanged" do
+        plan = plan_for(%w[install --binstubs bin --target-rbconfig cfg/rbconfig.rb])
+
+        expect(plan.invocation.values("binstubs")).to eq(["bin"])
+        expect(plan.invocation.values("target-rbconfig")).to eq(["cfg/rbconfig.rb"])
+      end
+    end
+  end
+
+  context "when a flag takes a path relative to the project root" do
+    it "rewrites --binstubs so it resolves from the secondary gemfile's directory" do
+      plan = plan_for(%w[install --binstubs bin])
+
+      expect(plan.invocation.values("binstubs")).to eq(["../bin"])
+    end
+
+    it "rewrites --target-rbconfig the same way", :aggregate_failures do
+      plan = plan_for(%w[install --target-rbconfig cfg/rbconfig.rb --jobs 2])
+
+      expect(plan.invocation.values("target-rbconfig")).to eq(["../cfg/rbconfig.rb"])
+      expect(plan.invocation.option?("jobs")).to be(true)
+    end
+
+    it "leaves a --binstubs given without a directory alone" do
+      plan = plan_for(%w[install --binstubs])
+
+      expect(plan.invocation.to_argv).to eq(%w[install --binstubs])
     end
   end
 end

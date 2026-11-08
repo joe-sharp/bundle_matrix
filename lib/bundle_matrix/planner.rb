@@ -25,6 +25,9 @@ module BundleMatrix
     # Install flags that only make sense for the main Gemfile, or that Bundler no longer accepts
     MAIN_ONLY_INSTALL_OPTIONS = %w[lockfile standalone path].freeze
 
+    # Options whose values are paths. A child resolves a relative one from its own gemfile's directory, so each is rewritten
+    PATH_OPTIONS = %w[binstubs path target-rbconfig].freeze
+
     def initialize(invocation, gemfile, root)
       @invocation = invocation.without("gemfile")
       @gemfile = SecondaryGemfile.new(gemfile)
@@ -99,7 +102,7 @@ module BundleMatrix
         return install_plan(@invocation.as("install"), notes + ["gems already declared, re-locking with install"])
       end
 
-      run(rewrite_path(@invocation.with_gems(new_gems)), notes)
+      run(@invocation.with_gems(new_gems), notes)
     end
 
     def full_update?(invocation)
@@ -113,18 +116,24 @@ module BundleMatrix
       install_plan(@invocation.as("install"), ["#{reason}, running install to create it"])
     end
 
-    # A relative --path is written into the main Gemfile relative to the root,
-    # so it has to be rewritten to be relative to this gemfile instead.
-    def rewrite_path(invocation)
-      return invocation unless invocation.option?("path")
+    # A relative path is relative to the root in the main run, so it has to be rewritten to be relative to
+    # this gemfile's directory, where the child runs.
+    def rewrite_paths(invocation)
+      PATH_OPTIONS.reduce(invocation) do |rewritten, name|
+        values = rewritten.values(name)
+        next rewritten if values.empty?
 
-      absolute = File.expand_path(invocation.values("path").first, @root)
-      relative = Bundler::SharedHelpers.relative_path_to(absolute, from: @gemfile.path.dirname)
-      invocation.replace_values("path", [relative])
+        rewritten.replace_values(name, values.map { |value| relative_to_gemfile(value) })
+      end
+    end
+
+    def relative_to_gemfile(value)
+      absolute = File.expand_path(value, @root)
+      Bundler::SharedHelpers.relative_path_to(absolute, from: @gemfile.path.dirname)
     end
 
     def run(invocation, notes = [])
-      Plan.new(invocation: invocation, notes: notes, locked_bundler: @gemfile.bundler_version)
+      Plan.new(invocation: rewrite_paths(invocation), notes: notes, locked_bundler: @gemfile.bundler_version)
     end
 
     def skip(reason)
