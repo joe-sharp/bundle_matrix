@@ -1,0 +1,214 @@
+module BundleMatrix
+  VERSION: String
+  MIN_BUNDLER: String
+  TESTED_BUNDLER: Gem::Requirement
+
+  class Error < Bundler::BundlerError
+    def status_code: () -> Integer
+  end
+
+  class ArgvParser
+    class Switch < Data
+      attr_reader name: String
+      attr_reader option: Bundler::Thor::Option
+      attr_reader negated: bool
+
+      def self.new: (name: String, option: Bundler::Thor::Option, ?negated: bool) -> instance
+      def initialize: (name: String, option: Bundler::Thor::Option, ?negated: bool) -> void
+    end
+
+    INSTALL_ALIASES: Array[String]
+
+    @switches: Hash[String, Switch]
+
+    def self.split_command: (Array[String] argv) -> [String?, Array[String]]
+    private def self.default_command_used?: (String? token) -> bool
+    private def self.resolve_command: (String? token) -> String?
+    def self.call: (String command, Array[String] tokens) -> [Array[Invocation::Option], Array[String], Array[String]]
+    def self.table_for: (String command) -> Hash[String, Bundler::Thor::Option]
+
+    def initialize: (Hash[String, Bundler::Thor::Option] table) -> void
+    def call: (Array[String] tokens) -> [Array[Invocation::Option], Array[String], Array[String]]
+
+    private
+
+    def collect: (Array[String] rest) -> [Array[Invocation::Option], Array[String], Array[String]]
+    def switch_table: (Hash[String, Bundler::Thor::Option] table) -> Hash[String, Switch]
+    def switch?: (String token) -> bool
+    def split_terminator: (Array[String] tokens) -> [Array[String], Array[String]]
+    def read_option: (String token, Array[String] rest) -> Invocation::Option?
+    def split_switch: (String token) -> [String, String?]
+    def values_for: (Bundler::Thor::Option option, String? inline, Array[String] rest) -> [Array[String], Integer]
+    def array_values: (Array[String] rest, Array[String] leading) -> [Array[String], Integer]
+  end
+
+  class Config
+    TRUE_VALUES: Array[String]
+    FALSE_VALUES: Array[String]
+    DEFAULT_GEMFILE: String
+
+    def paths: () -> Array[String]
+    def default_gemfile: () -> String
+    def disabled?: () -> bool
+    def fail_fast?: () -> bool
+    def bundler_warnings?: () -> bool
+
+    private
+
+    def truthy?: (String key) -> bool
+  end
+
+  class Discovery
+    DIRECTORY_GEMFILES: Array[String]
+
+    @root: Pathname
+    @paths: Array[String]
+    @default_gemfile: String
+
+    def initialize: (Pathname | String root, Array[String] paths, default_gemfile: String) -> void
+    def gemfiles: () -> Array[Pathname]
+
+    private
+
+    def default_gemfile_path: () -> Pathname
+    def main_gemfile?: (Pathname path) -> bool
+    def glob: (String pattern) -> Array[Pathname]
+    def configured_gemfiles: () -> Array[Pathname]
+    def gemfiles_at: (Pathname path) -> Array[Pathname]
+  end
+
+  class Invocation < Data
+    COMMANDS: Array[String]
+
+    class Option < Data
+      attr_reader name: String
+      attr_reader tokens: Array[String]
+      attr_reader values: Array[String]
+      attr_reader negated: bool
+
+      def self.new: (name: String, tokens: Array[String], values: Array[String], ?negated: bool) -> instance
+      def initialize: (name: String, tokens: Array[String], values: Array[String], ?negated: bool) -> void
+    end
+
+    attr_reader command: String
+    attr_reader options: Array[Option]
+    attr_reader gems: Array[String]
+    attr_reader unknown: Array[String]
+
+    def self.new: (command: String, options: Array[Option], gems: Array[String], unknown: Array[String]) -> instance
+    def self.parse: (Array[String] argv) -> Invocation?
+
+    def with: (?command: String, ?options: Array[Option], ?gems: Array[String], ?unknown: Array[String]) -> Invocation
+    def option?: (String name) -> bool
+    def option: (String name) -> Option?
+    def values: (String name) -> Array[String]
+    def with_gems: (Array[String] new_gems) -> Invocation
+    def without: (*String names) -> Invocation
+    def replace_values: (String name, Array[String] new_values) -> Invocation
+    def as: (String target, ?gems: Array[String]) -> Invocation
+    def to_argv: () -> Array[String]
+  end
+
+  class SecondaryGemfile
+    @locked: Bundler::LockfileParser?
+    @lock_names: Array[String]?
+    @declared: Array[Bundler::Dependency]?
+
+    attr_reader path: Pathname
+
+    def initialize: (Pathname | String path) -> void
+    def lockfile: () -> Pathname
+    def locked?: () -> bool
+    def bundler_version: () -> Gem::Version?
+    def lock_names: () -> Array[String]
+    def declared_names: () -> Array[String]
+    def declared_groups: () -> Array[String]
+
+    private
+
+    def locked: () -> Bundler::LockfileParser?
+    def declared: () -> Array[Bundler::Dependency]
+  end
+
+  class Planner
+    class Plan < Data
+      attr_reader invocation: Invocation?
+      attr_reader notes: Array[String]
+      attr_reader error: String?
+      attr_reader locked_bundler: Gem::Version?
+
+      def self.new: (invocation: Invocation?, notes: Array[String], ?error: String?, ?locked_bundler: Gem::Version?) -> instance
+      def initialize: (invocation: Invocation?, notes: Array[String], ?error: String?, ?locked_bundler: Gem::Version?) -> void
+      def failed?: () -> bool
+      def skipped?: () -> bool
+    end
+
+    MAIN_ONLY_INSTALL_OPTIONS: Array[String]
+    PATH_OPTIONS: Array[String]
+
+    @invocation: Invocation
+    @gemfile: SecondaryGemfile
+    @root: Pathname
+
+    def initialize: (Invocation invocation, Pathname | String gemfile, Pathname | String root) -> void
+    def plan: () -> Plan
+
+    private
+
+    def install_plan: (Invocation invocation, ?Array[String] notes) -> Plan
+    def dropped_note: (String name) -> String
+    def update_plan: () -> Plan
+    def narrow_update: (Invocation invocation) -> Plan
+    def narrow_groups: (Invocation invocation) -> Array[String]
+    def unmatched?: (Invocation invocation, Array[String] matched) -> bool
+    def requested: (Invocation invocation) -> Array[String]
+    def add_plan: () -> Plan
+    def full_update?: (Invocation invocation) -> bool
+    def install_instead: (String reason) -> Plan
+    def rewrite_paths: (Invocation invocation) -> Invocation
+    def relative_to_gemfile: (String value) -> String
+    def run: (Invocation invocation, ?Array[String] notes) -> Plan
+    def skip: (String reason) -> Plan
+  end
+
+  module ProjectSettings
+    MAIN_ONLY: Array[String]
+    PATHS: Array[String]
+
+    def self.env: (Pathname root) -> Hash[String, String]
+  end
+
+  class Runner
+    BUNDLE: String
+
+    @root: Pathname
+    @fail_fast: bool
+    @bundler_warnings: bool
+    @project_env: Hash[String, String]?
+
+    def initialize: (Pathname | String root, ?fail_fast: bool, ?bundler_warnings: bool) -> void
+    def run: (Hash[Pathname, Planner::Plan] plans) -> void
+
+    private
+
+    def plan_passed?: (Pathname gemfile, Pathname label, Planner::Plan plan, Gem::Version? other_bundler) -> bool
+    def say: (Pathname label, String message) -> void
+    def report_unplanned: (Pathname label, String? error) -> void
+    def other_bundler_for: (Planner::Plan plan) -> Gem::Version?
+    def warn_other_bundler: (Pathname label, Gem::Version? version) -> void
+    def suggest_bundler_update: () -> void
+    def success?: (Pathname gemfile, Invocation invocation) -> bool
+    def child_env: (Pathname gemfile) -> Hash[String, String?]
+    def project_env: () -> Hash[String, String]
+  end
+
+  module Hook
+    ISSUES_URL: String
+
+    def self.call: (?Array[String] argv) -> void
+    private def self.plans_for: (Invocation invocation, Array[Pathname] gemfiles, Pathname root) -> Hash[Pathname, Planner::Plan]
+    private def self.warn_untested_bundler: () -> void
+    private def self.default_gemfile?: (Config config) -> bool
+    private def self.secondary_run?: () -> bool
+  end
+end

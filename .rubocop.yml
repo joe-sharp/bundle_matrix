@@ -1,0 +1,7 @@
+inherit_gem:
+  sharp_style_rubocop: config/default.yml
+
+# The E2E specs describe a bundle command, not a class
+RSpec/DescribeClass:
+  Exclude:
+    - 'spec/e2e/**/*'

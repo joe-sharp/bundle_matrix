@@ -1,0 +1,162 @@
+name: Ruby
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # Installs each gemfile's bundle once per Ruby, so the jobs below restore it from the cache.
+  # setup-ruby reads BUNDLE_GEMFILE, so each appraisal gets its own lockfile's gems and Bundler version.
+  install:
+    runs-on: ubuntu-latest
+    name: Install (Ruby ${{ matrix.ruby }}, ${{ matrix.gemfile }})
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: &test_rubies
+          - '3.3'
+          - '3.4'
+          - '4.0.9'
+        gemfile: &gemfiles
+          - Gemfile
+          - gemfiles/bundler_2.6.9.gemfile
+          - gemfiles/bundler_2.7.2.gemfile
+          - gemfiles/bundler_4.0.24.gemfile
+          - gemfiles/bundler_4.1.0.beta3.gemfile
+          - gemfiles/gem_coop.gemfile
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Ruby and install gems
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+
+  rubocop:
+    needs: install
+    runs-on: ubuntu-latest
+    name: RuboCop (Ruby ${{ matrix.ruby }})
+    strategy:
+      matrix:
+        ruby: &rubies
+          - '4.0.9'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - run: bundle exec rubocop
+
+  types:
+    needs: install
+    runs-on: ubuntu-latest
+    name: RBS and Steep (Ruby ${{ matrix.ruby }})
+    strategy:
+      matrix:
+        ruby: *rubies
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - run: bundle exec rake rbs steep
+
+  rspec:
+    needs: install
+    runs-on: ubuntu-latest
+    name: RSpec (Ruby ${{ matrix.ruby }})
+    strategy:
+      matrix:
+        ruby: *test_rubies
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Run the unit specs with coverage
+        env:
+          COVERAGE: "true"
+        run: bundle exec rake spec
+
+  e2e:
+    needs: install
+    runs-on: ubuntu-latest
+    name: RSpec E2E (Ruby ${{ matrix.ruby }})
+    strategy:
+      matrix:
+        ruby: *test_rubies
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - run: bundle exec rake e2e
+
+  # The appraisals leave out RuboCop, which the Rakefile loads, so this runs rspec directly
+  appraisal-rspec:
+    needs: install
+    runs-on: ubuntu-latest
+    name: RSpec (Ruby ${{ matrix.ruby }}, ${{ matrix.gemfile }})
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: *test_rubies
+        gemfile: *gemfiles
+        exclude:
+          - gemfile: Gemfile
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - run: bundle exec rspec spec/bundle_matrix
+
+  appraisal-e2e:
+    needs: install
+    runs-on: ubuntu-latest
+    name: RSpec E2E (Ruby ${{ matrix.ruby }}, ${{ matrix.gemfile }})
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: *test_rubies
+        gemfile: *gemfiles
+        exclude:
+          - gemfile: Gemfile
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - run: bundle exec rspec spec/e2e

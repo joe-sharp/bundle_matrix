@@ -1,0 +1,13 @@
+# frozen_string_literal: true
+
+# The same as RubyGems' `bundle` binstub. Loading Bundler through RubyGems picks
+# the Bundler version for each gemfile from BUNDLER_VERSION, the `version`
+# setting or its lockfile's BUNDLED WITH line, as running `bundle` would.
+# Kept in lib/ so it is not installed as an executable of this gem.
+require "rubygems"
+
+if Gem.respond_to?(:activate_and_load_bin_path)
+  Gem.activate_and_load_bin_path("bundler", "bundle", ">= 0.a")
+else
+  load Gem.activate_bin_path("bundler", "bundle", ">= 0.a")
+end
