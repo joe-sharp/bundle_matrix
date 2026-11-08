@@ -204,6 +204,13 @@ RSpec.describe(BundleMatrix::Planner) do
       expect(plan.invocation.to_argv).to eq(%w[update --group dev])
     end
 
+    it "does not evaluate the gemfile when no group was given" do
+      plan = plan_for(%w[update rake], gemfile_contents: "gem ENV.fetch(\"BUNDLE_MATRIX_SPEC_UNSET\")\n", lock: lock_for("rake"))
+
+      expect(plan).not_to be_failed
+      expect(plan.invocation.to_argv).to eq(%w[update rake])
+    end
+
     it "removes --gemfile, which is set through BUNDLE_GEMFILE instead" do
       plan = plan_for(%w[update --gemfile Gemfile --all])
 
