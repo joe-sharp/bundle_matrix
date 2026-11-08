@@ -25,7 +25,8 @@ module BundleMatrix
     # Install flags that only make sense for the main Gemfile, or that Bundler no longer accepts
     MAIN_ONLY_INSTALL_OPTIONS = %w[lockfile standalone path].freeze
 
-    # Options whose values are paths. A child resolves a relative one from its own gemfile's directory, so each is rewritten
+    # Options whose values are paths. A child resolves a relative one from its own gemfile's directory,
+    # so each is rewritten to be relative to that directory instead
     PATH_OPTIONS = %w[binstubs path target-rbconfig].freeze
 
     def initialize(invocation, gemfile, root)
@@ -50,8 +51,16 @@ module BundleMatrix
 
     def install_plan(invocation, notes = [])
       dropped = MAIN_ONLY_INSTALL_OPTIONS.select { |name| invocation.option?(name) }
-      notes += dropped.map { |name| "--#{name} is not forwarded to other gemfiles" }
+      notes += dropped.map { |name| dropped_note(name) }
       run(invocation.without(*MAIN_ONLY_INSTALL_OPTIONS), notes)
+    end
+
+    # Bundler 2 saves --path to .bundle/config, which ProjectSettings passes on, so it still reaches other gemfiles
+    def dropped_note(name)
+      return "--#{name} is not forwarded to other gemfiles" unless name == "path"
+
+      "--path is not forwarded to other gemfiles, but a path Bundler saved in .bundle/config " \
+        "reaches them as BUNDLE_PATH"
     end
 
     def update_plan

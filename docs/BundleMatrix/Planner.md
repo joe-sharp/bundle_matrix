@@ -25,7 +25,8 @@ Install flags that only make sense for the main Gemfile, or that Bundler no long
 PATH_OPTIONS = %w[binstubs path target-rbconfig].freeze
 ```
 
-Options whose values are paths. A child resolves a relative one from its own gemfile's directory, so each is rewritten
+Options whose values are paths. A child resolves a relative one from its own gemfile's directory,
+so each is rewritten to be relative to that directory instead
 
 ## Instance methods
 

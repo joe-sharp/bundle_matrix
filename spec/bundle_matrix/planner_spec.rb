@@ -204,8 +204,9 @@ RSpec.describe(BundleMatrix::Planner) do
       expect(plan.invocation.to_argv).to eq(%w[update --group dev])
     end
 
-    it "does not evaluate the gemfile when no group was given" do
-      plan = plan_for(%w[update rake], gemfile_contents: "gem ENV.fetch(\"BUNDLE_MATRIX_SPEC_UNSET\")\n", lock: lock_for("rake"))
+    it "does not evaluate the gemfile when no group was given", :aggregate_failures do
+      gemfile_contents = "gem ENV.fetch(\"BUNDLE_MATRIX_SPEC_UNSET\")\n"
+      plan = plan_for(%w[update rake], gemfile_contents: gemfile_contents, lock: lock_for("rake"))
 
       expect(plan).not_to be_failed
       expect(plan.invocation.to_argv).to eq(%w[update rake])
@@ -269,7 +270,8 @@ RSpec.describe(BundleMatrix::Planner) do
       expect(plan.notes).to eq([
         "rake is already declared, not added again",
         "gems already declared, re-locking with install",
-        "--path is not forwarded to other gemfiles"
+        "--path is not forwarded to other gemfiles, but a path Bundler saved in .bundle/config " \
+        "reaches them as BUNDLE_PATH"
       ])
     end
 
@@ -301,7 +303,7 @@ RSpec.describe(BundleMatrix::Planner) do
         expect(plan.invocation.values("path")).to eq(["vendor/local_gem"])
       end
 
-      it "forwards relative install paths unchanged" do
+      it "forwards relative install paths unchanged", :aggregate_failures do
         plan = plan_for(%w[install --binstubs bin --target-rbconfig cfg/rbconfig.rb])
 
         expect(plan.invocation.values("binstubs")).to eq(["bin"])
