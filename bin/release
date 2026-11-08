@@ -51,6 +51,10 @@ abort "#{tag} already exists but does not point at HEAD" if tag_exists && tag_co
 puts "\nTag #{tag}: #{description}"
 exit unless ask("Tag, push, build and publish? (y/N)").to_s.downcase.start_with?("y")
 
+# Built before the tag is pushed, so a build failure does not leave a public tag for a version never released
+puts "$ gem build #{File.basename(helper.spec_path)}"
+gem_file = helper.build_gem
+
 if tag_exists
   puts "#{tag} already exists at HEAD; not creating it again"
 else
@@ -58,9 +62,6 @@ else
 end
 # Pushing a tag that the remote already has at the same commit is a no-op.
 run "git", "push", "origin", tag
-
-puts "$ gem build #{File.basename(helper.spec_path)}"
-gem_file = helper.build_gem
 
 coop = "https://gem.coop/@joe-sharp"
 if published?(coop, name, version)
