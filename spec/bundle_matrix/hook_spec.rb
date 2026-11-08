@@ -108,6 +108,18 @@ RSpec.describe(BundleMatrix::Hook) do
     expect(BundleMatrix::Runner).not_to have_received(:new)
   end
 
+  # Thor's tables can change in a Bundler release, so a parse that fails must not break installs that never fan out
+  it "does not parse the command when disabled or in a secondary run", :aggregate_failures do
+    allow(BundleMatrix::Invocation).to receive(:parse).and_raise(NoMethodError)
+    allow(BundleMatrix::Config).to receive(:new).and_return(instance_double(BundleMatrix::Config, disabled?: true))
+
+    expect { described_class.call(%w[install]) }.not_to raise_error
+
+    stub_const("ENV", ENV.to_h.merge("BUNDLE_MATRIX_ACTIVE" => "1"))
+    expect { described_class.call(%w[install]) }.not_to raise_error
+    expect(BundleMatrix::Invocation).not_to have_received(:parse)
+  end
+
   it "does nothing for commands other than install, update and add" do
     described_class.call(%w[exec rspec])
 

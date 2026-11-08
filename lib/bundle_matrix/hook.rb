@@ -5,12 +5,15 @@ module BundleMatrix
   module Hook
     ISSUES_URL = "https://github.com/joe-sharp/bundle_matrix/issues"
 
+    # Checked before parsing, so a disabled plugin or a child run never depends on how Bundler's CLI parses
     def self.call(argv = ARGV)
-      invocation = Invocation.parse(argv)
-      return unless invocation && !secondary_run?
+      return if secondary_run?
 
       config = Config.new
-      return if config.disabled? || !default_gemfile?(config)
+      return if config.disabled?
+
+      invocation = Invocation.parse(argv)
+      return unless invocation && default_gemfile?(config)
 
       root = Bundler.root
       gemfiles = Discovery.new(root, config.paths, default_gemfile: config.default_gemfile).gemfiles
