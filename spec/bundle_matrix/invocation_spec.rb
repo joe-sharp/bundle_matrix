@@ -101,6 +101,12 @@ RSpec.describe(BundleMatrix::Invocation) do
       expect(invocation.gems).to eq(%w[rails])
     end
 
+    it "reads a repeated option the way Bundler does, from its last copy", :aggregate_failures do
+      expect(parse("update", "--group", "dev", "--group", "test").values("group")).to eq(%w[test])
+      expect(parse("add", "foo", "--path", "a", "--path", "b").values("path")).to eq(%w[b])
+      expect(parse("update", "--all", "--no-all").option?("all")).to be(false)
+    end
+
     it "does not count --no-name as setting the option, but still forwards it", :aggregate_failures do
       invocation = parse("update", "--no-all", "rails")
 

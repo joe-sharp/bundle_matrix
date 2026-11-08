@@ -42,7 +42,7 @@ def self.parse(argv)
 | Method | Summary |
 | --- | --- |
 | [`#as(target, gems: [])`](#method-i-as) | The same flags, re-targeted at another command. |
-| [`#option(name)`](#method-i-option) |  |
+| [`#option(name)`](#method-i-option) | Bundler keeps the last copy of a repeated option, so that is the one that counts |
 | [`#option?(name)`](#method-i-option-3F) | `--no-name` does not count as setting the option |
 | [`#replace_values(name, new_values)`](#method-i-replace_values) | Replaces an option's values, dropping the option when none are left. |
 | [`#to_argv`](#method-i-to_argv) |  |
@@ -64,6 +64,8 @@ understands are kept, and the gems are replaced.
 ```ruby
 def option(name)
 ```
+
+Bundler keeps the last copy of a repeated option, so that is the one that counts
 
 ### <a id="method-i-option-3F"></a>`#option?`
 

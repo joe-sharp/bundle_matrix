@@ -29,11 +29,13 @@ module BundleMatrix
 
     # `--no-name` does not count as setting the option
     def option?(name)
-      options.any? { |opt| opt.name == name && !opt.negated }
+      opt = option(name)
+      !opt.nil? && !opt.negated
     end
 
+    # Bundler keeps the last copy of a repeated option, so that is the one that counts
     def option(name)
-      options.find { |opt| opt.name == name }
+      options.reverse_each.find { |opt| opt.name == name }
     end
 
     def values(name)
