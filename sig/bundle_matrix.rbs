@@ -1,5 +1,6 @@
 module BundleMatrix
   VERSION: String
+  MIN_BUNDLER: String
   TESTED_BUNDLER: Gem::Requirement
 
   class Error < Bundler::BundlerError
@@ -70,6 +71,7 @@ module BundleMatrix
     private
 
     def default_gemfile_path: () -> Pathname
+    def main_gemfile?: (Pathname path) -> bool
     def glob: (String pattern) -> Array[Pathname]
     def configured_gemfiles: () -> Array[Pathname]
     def gemfiles_at: (Pathname path) -> Array[Pathname]
@@ -142,6 +144,7 @@ module BundleMatrix
     end
 
     MAIN_ONLY_INSTALL_OPTIONS: Array[String]
+    PATH_OPTIONS: Array[String]
 
     @invocation: Invocation
     @gemfile: SecondaryGemfile
@@ -153,14 +156,17 @@ module BundleMatrix
     private
 
     def install_plan: (Invocation invocation, ?Array[String] notes) -> Plan
+    def dropped_note: (String name) -> String
     def update_plan: () -> Plan
     def narrow_update: (Invocation invocation) -> Plan
-    def unmatched?: (Invocation invocation, Array[String] gems, Array[String] groups) -> bool
+    def narrow_groups: (Invocation invocation) -> Array[String]
+    def unmatched?: (Invocation invocation, Array[String] matched) -> bool
     def requested: (Invocation invocation) -> Array[String]
     def add_plan: () -> Plan
     def full_update?: (Invocation invocation) -> bool
     def install_instead: (String reason) -> Plan
-    def rewrite_path: (Invocation invocation) -> Invocation
+    def rewrite_paths: (Invocation invocation) -> Invocation
+    def relative_to_gemfile: (String value) -> String
     def run: (Invocation invocation, ?Array[String] notes) -> Plan
     def skip: (String reason) -> Plan
   end
