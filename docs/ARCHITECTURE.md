@@ -108,7 +108,7 @@ flowchart LR
 ```
 
 - `rake` runs `spec`, `e2e`, `rubocop`, `rbs` and `steep`. Steep type checks `lib/` against `sig/`, and `sig_stubs/` declares the parts of Bundler's API the code calls, since Bundler publishes no signatures.
-- `TESTED_BUNDLER` in `version.rb` sets the gemspec's Bundler dependency and the untested-Bundler warning. `spec/bundle_matrix_spec.rb` checks it against the `gemfiles/bundler_*.gemfile` files the Appraisals generate: every one is in range, and the range stops before the minor after the highest tested one. A new Bundler minor therefore needs the Appraisal and the range changed together.
+- `MIN_BUNDLER` in `version.rb` sets the gemspec's Bundler dependency, a lower bound only, so a newer Bundler can still install the plugin. `TESTED_BUNDLER` in the same file sets the untested-Bundler warning. `spec/bundle_matrix_spec.rb` checks `TESTED_BUNDLER` against the `gemfiles/bundler_*.gemfile` files the Appraisals generate: every one is in range, and the range stops before the minor after the highest tested one. A new Bundler minor therefore needs the Appraisal and the range changed together.
 - The E2E jobs in CI are disabled until the project moves to the public repo.
 
 ## Bundler internals we rely on

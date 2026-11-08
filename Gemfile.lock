@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     bundle_matrix (0.1.0)
-      bundler (>= 2.6.9, < 4.2.a)
+      bundler (>= 2.6.9)
 
 GEM
   remote: https://rubygems.org/

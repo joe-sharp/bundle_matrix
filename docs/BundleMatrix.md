@@ -19,14 +19,22 @@ A Bundler plugin that repeats `install`, `update` and `add` against every second
 
 ## Constants
 
+### <a id="constant-MIN_BUNDLER"></a>`MIN_BUNDLER`
+
+```ruby
+MIN_BUNDLER = "2.6.9"
+```
+
+The oldest Bundler the plugin runs under. The gemspec requires it, and nothing newer is refused.
+It is where Bundler::SharedHelpers.relative_path_to, which Planner uses, first appeared.
+
 ### <a id="constant-TESTED_BUNDLER"></a>`TESTED_BUNDLER`
 
 ```ruby
-TESTED_BUNDLER = Gem::Requirement.new(">= 2.6.9", "< 4.2.a")
+TESTED_BUNDLER = Gem::Requirement.new(">= #{MIN_BUNDLER}", "< 4.2.a")
 ```
 
-The Bundler versions the Appraisals test. The gemspec requires this range, and the hook warns outside it.
-The lower bound is where Bundler::SharedHelpers.relative_path_to, which Planner uses, first appeared.
+The Bundler versions the Appraisals test. The hook warns outside this range, not the gemspec.
 The `.a` keeps 4.2 prereleases out too; raise it once a new Bundler minor has been tested.
 
 ### <a id="constant-VERSION"></a>`VERSION`

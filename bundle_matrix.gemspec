@@ -34,8 +34,9 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  # The plugin relies on Bundler internals that aren't a plugin API, so it only allows the tested range
-  spec.add_dependency "bundler", *BundleMatrix::TESTED_BUNDLER.as_list
+  # The plugin relies on Bundler internals that aren't a plugin API, so it needs the oldest Bundler it runs under.
+  # Newer Bundlers are allowed, and the hook warns when it runs under one that has not been tested.
+  spec.add_dependency "bundler", ">= #{BundleMatrix::MIN_BUNDLER}"
 
   # For more information and examples about making a new gem, check out our
   # guide at: https://guides.rubygems.org/make-your-own-gem/
