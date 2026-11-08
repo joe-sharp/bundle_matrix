@@ -3,8 +3,11 @@
 
 # Usage: bin/release [description]
 # Releases v<gemspec version>; the description is asked for if not given.
+# RubyGems uses the credentials from `gem signin` and asks for a one-time password. The gem.coop API key is
+# asked for, not read from the environment, and is only given to the gem.coop push.
 
 require "bundler/gem_helper"
+require "io/console"
 require "net/http"
 
 def ask(question)
@@ -13,9 +16,18 @@ def ask(question)
   answer unless answer.empty?
 end
 
-def run(*cmd)
-  puts "$ #{cmd.join(" ")}"
-  system(*cmd) || abort("Failed: #{cmd.join(" ")}")
+# Not echoed, for API keys
+def ask_secret(question)
+  print "#{question}: "
+  answer = $stdin.noecho(&:gets).to_s.strip
+  puts
+  answer unless answer.empty?
+end
+
+# env is set for this one command only; a nil value removes the variable from it. shown is what gets printed.
+def run(*cmd, env: {}, shown: cmd)
+  puts "$ #{shown.join(" ")}"
+  system(env, *cmd) || abort("Failed: #{shown.join(" ")}")
 end
 
 # Compact index lists every published version of the gem as the first word of each line.
@@ -28,7 +40,6 @@ def published?(host, name, version)
   end
 end
 
-abort "GEM_HOST_API_KEY is not set" if ENV["GEM_HOST_API_KEY"].to_s.empty?
 # Checked before switching branches, so a dirty tree is never carried over to main.
 abort "Working tree is not clean" unless `git status --porcelain`.empty?
 
@@ -41,6 +52,7 @@ helper = Bundler::GemHelper.new(File.expand_path("..", __dir__))
 name = helper.gemspec.name
 version = helper.gemspec.version.to_s
 tag = "v#{version}"
+coop = "https://gem.coop/@joe-sharp"
 
 description = ARGV.first || ask("Release description") or abort "A description is required"
 
@@ -48,8 +60,15 @@ tag_exists = system("git", "rev-parse", "-q", "--verify", "refs/tags/#{tag}", ou
 tag_commit = `git rev-parse "#{tag}^{commit}"`.strip if tag_exists
 abort "#{tag} already exists but does not point at HEAD" if tag_exists && tag_commit != `git rev-parse HEAD`.strip
 
+rubygems_published = published?(Gem.host, name, version)
+coop_published = published?(coop, name, version)
+
 puts "\nTag #{tag}: #{description}"
 exit unless ask("Tag, push, build and publish? (y/N)").to_s.downcase.start_with?("y")
+
+# Only asked for when gem.coop still needs the gem, and kept in memory for that one push
+coop_key = ask_secret("gem.coop API key") unless coop_published
+abort "A gem.coop API key is required" if !coop_published && coop_key.nil?
 
 # Built first, so a build failure stops the release before anything is tagged or published
 puts "$ gem build #{File.basename(helper.spec_path)}"
@@ -61,17 +80,18 @@ else
   run "git", "tag", "-a", tag, "-m", description
 end
 
-if published?(Gem.host, name, version)
+if rubygems_published
   puts "#{name} #{version} is already on #{Gem.host}; skipping"
 else
-  run("gem", "push", gem_file)
+  otp = ask("RubyGems one-time password") or abort "A RubyGems one-time password is required"
+  # GEM_HOST_API_KEY takes priority over stored credentials, so it is removed for this push
+  run("gem", "push", "--otp", otp, gem_file, env: { "GEM_HOST_API_KEY" => nil }, shown: ["gem", "push", gem_file])
 end
 
-coop = "https://gem.coop/@joe-sharp"
-if published?(coop, name, version)
+if coop_published
   puts "#{name} #{version} is already on #{coop}; skipping"
 else
-  run("gem", "push", "--host", coop, gem_file)
+  run("gem", "push", "--host", coop, gem_file, env: { "GEM_HOST_API_KEY" => coop_key })
 end
 
 # Last, so the tag only goes public once the gem is out.
