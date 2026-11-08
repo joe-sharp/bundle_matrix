@@ -1,0 +1,78 @@
+# Stand-ins for the parts of Bundler that lib/ calls, so rbs and Steep can check against them.
+# Bundler publishes no signatures. These cover only what the plugin uses, and are not a model of its API.
+module Bundler
+  VERSION: String
+
+  def self.settings: () -> Settings
+  def self.ui: () -> UI::Shell
+  def self.root: () -> Pathname
+  def self.default_gemfile: () -> Pathname
+  def self.original_env: () -> Hash[String, String]
+  def self.unbundled_system: (Hash[String, String?] env, *String command, chdir: String) -> bool?
+
+  class BundlerError < StandardError
+    def self.status_code: (Integer code) -> void
+  end
+
+  class Settings
+    # Values are strings, booleans or numbers, depending on the setting
+    def []: (String | Symbol name) -> untyped
+    def all: () -> Array[String]
+    def key_for: (String name) -> String
+    def locations: (String name) -> Hash[Symbol, untyped]
+  end
+
+  module UI
+    class Shell
+      def info: (String message) -> void
+      def warn: (String message) -> void
+      def error: (String message) -> void
+    end
+  end
+
+  class Dependency
+    def name: () -> String
+    def groups: () -> Array[Symbol]
+  end
+
+  class LazySpecification
+    def name: () -> String
+  end
+
+  class LockfileParser
+    def initialize: (String lockfile) -> void
+    def specs: () -> Array[LazySpecification]
+    def bundler_version: () -> Gem::Version?
+  end
+
+  class Dsl
+    def eval_gemfile: (Pathname gemfile) -> void
+    def dependencies: () -> Array[Dependency]
+  end
+
+  module SharedHelpers
+    def self.relative_path_to: (String destination, from: Pathname) -> String
+  end
+
+  class Thor
+    class Option
+      def type: () -> Symbol
+      def aliases: () -> Array[String]
+      def lazy_default: () -> untyped
+    end
+
+    class Command
+      def options: () -> Hash[String, Option]
+    end
+
+    class AmbiguousTaskError < StandardError
+    end
+
+    def self.class_options: () -> Hash[String, Option]
+    def self.commands: () -> Hash[String, Command]
+    def self.map: () -> Hash[String, String]
+  end
+
+  class CLI < Thor
+  end
+end
