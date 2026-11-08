@@ -17,13 +17,18 @@ module BundleMatrix
     def gemfiles
       found = glob("*.gemfile") + glob("gemfiles/*.gemfile") + configured_gemfiles
 
-      found.map(&:expand_path).uniq.sort - [default_gemfile_path]
+      found.map(&:expand_path).uniq.sort.reject { |path| main_gemfile?(path) }
     end
 
     private
 
     def default_gemfile_path
       @root.join(@default_gemfile)
+    end
+
+    # Compares files, not paths, so a symlink to the main gemfile is excluded too
+    def main_gemfile?(path)
+      File.identical?(path, default_gemfile_path)
     end
 
     # Patterns are relative to the root, so glob characters in the project's own path are not special

@@ -72,6 +72,14 @@ RSpec.describe(BundleMatrix::Discovery) do
     expect(relative(found)).to eq(%w[ci.gemfile gemfiles/rails7.gemfile])
   end
 
+  it "never returns a symlink to the main gemfile, which is the same file" do
+    File.symlink(root.join("Gemfile"), root.join("linked.gemfile"))
+
+    found = described_class.new(root, [], default_gemfile: "Gemfile").gemfiles
+
+    expect(relative(found)).to eq(%w[ci.gemfile gemfiles/rails7.gemfile])
+  end
+
   it "keeps Gemfile as a secondary when the main gemfile is named differently" do
     touch("gems.rb")
 
