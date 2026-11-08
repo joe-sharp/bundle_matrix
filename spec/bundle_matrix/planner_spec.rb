@@ -211,6 +211,18 @@ RSpec.describe(BundleMatrix::Planner) do
       expect(plan.invocation.to_argv).to eq(%w[update rake])
     end
 
+    it "keeps only the --source gems that this gemfile's lockfile has" do
+      plan = plan_for(%w[update --source rake mygem], lock: lock_for("rake"))
+
+      expect(plan.invocation.to_argv).to eq(%w[update --source rake])
+    end
+
+    it "skips a gemfile whose lockfile has none of the --source gems" do
+      plan = plan_for(%w[update --source mygem], lock: lock_for("rake"))
+
+      expect(plan).to be_skipped
+    end
+
     it "removes --gemfile, which is set through BUNDLE_GEMFILE instead" do
       plan = plan_for(%w[update --gemfile Gemfile --all])
 

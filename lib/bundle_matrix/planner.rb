@@ -61,12 +61,14 @@ module BundleMatrix
     # Keeps only the named gems and groups that this gemfile's lockfile or dependencies know about
     def narrow_update(invocation)
       gems = invocation.gems & @gemfile.lock_names
+      # --source names gems too, so it is narrowed to the lockfile the same way
+      sources = invocation.values("source") & @gemfile.lock_names
       groups = narrow_groups(invocation)
-      if unmatched?(invocation, gems, groups)
+      if unmatched?(invocation, [*gems, *sources, *groups])
         return skip("none of #{requested(invocation).join(", ")} are in this gemfile")
       end
 
-      run(invocation.with_gems(gems).replace_values("group", groups))
+      run(invocation.with_gems(gems).replace_values("source", sources).replace_values("group", groups))
     end
 
     # Declared groups are only read when --group was given, because reading them evaluates the whole gemfile
@@ -78,13 +80,13 @@ module BundleMatrix
     end
 
     # Named gems or groups were given, but none of them apply to this gemfile
-    def unmatched?(invocation, gems, groups)
-      requested(invocation).any? && gems.empty? && groups.empty? &&
+    def unmatched?(invocation, matched)
+      requested(invocation).any? && matched.empty? &&
         !invocation.option?("ruby") && !invocation.option?("bundler")
     end
 
     def requested(invocation)
-      invocation.gems + invocation.values("group")
+      invocation.gems + invocation.values("source") + invocation.values("group")
     end
 
     def add_plan
