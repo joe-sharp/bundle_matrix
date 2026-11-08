@@ -75,6 +75,15 @@ RSpec.describe(BundleMatrix::Invocation) do
       expect(invocation.option?("conservative")).to be(true)
     end
 
+    it "forwards a gem that starts with a dash after a -- terminator, so it is not read as a switch", :aggregate_failures do
+      expect(parse("add", "--", "-weird").to_argv).to eq(%w[add -- -weird])
+      expect(parse("add", "rack", "--", "-weird").to_argv).to eq(%w[add -- rack -weird])
+    end
+
+    it "keeps gems before the options when none starts with a dash" do
+      expect(parse("update", "rails", "--conservative").to_argv).to eq(%w[update rails --conservative])
+    end
+
     it "resolves aliases to the canonical option name", :aggregate_failures do
       invocation = parse("update", "-j", "4", "-g", "dev")
 

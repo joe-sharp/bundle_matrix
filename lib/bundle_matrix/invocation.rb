@@ -67,7 +67,11 @@ module BundleMatrix
     end
 
     def to_argv
-      [command, *gems, *options.flat_map(&:tokens), *unknown]
+      flags = [*options.flat_map(&:tokens), *unknown]
+      return [command, *gems, *flags] unless gems.any? { |gem| gem.start_with?("-") }
+
+      # A gem that starts with a dash would be read as a switch, so the gems go after a `--` that ends the switches
+      [command, *flags, "--", *gems]
     end
   end
 end
