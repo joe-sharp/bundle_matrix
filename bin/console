@@ -2,10 +2,29 @@
 # frozen_string_literal: true
 
 require "bundler/setup"
-require "bundle_matrix"
+
+# Locate the project root, its environment file, and its gemspec.
+root = File.expand_path("..", __dir__)
+environment = File.join(root, "config", "environment.rb")
+gemspec = Dir[File.join(root, "*.gemspec")].first
+
+# Load the app environment, or fall back to the gem's main file.
+if File.exist?(environment)
+  require environment
+elsif gemspec
+  gem_name = File.basename(gemspec, ".gemspec")
+  require gem_name if File.exist?(File.join(root, "lib", "#{gem_name}.rb"))
+end
 
 # You can add fixtures and/or initialization code here to make experimenting
 # with your gem easier. You can also use a different console, if you like.
 
-require "irb"
-IRB.start(__FILE__)
+# Start IRB, or fall back to Pry when IRB is unavailable.
+begin
+  require "irb"
+rescue LoadError
+  require "pry"
+  Pry.start
+else
+  IRB.start(__FILE__)
+end
