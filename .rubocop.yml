@@ -5,3 +5,12 @@ inherit_gem:
 RSpec/DescribeClass:
   Exclude:
     - 'spec/e2e/**/*'
+
+# The E2E gem repo fixture memoizes a temp directory and chdirs while building
+# it. The suite runs single-threaded, so the process-wide state is harmless.
+ThreadSafety/ClassInstanceVariable:
+  Exclude:
+    - 'spec/e2e/support/**/*'
+ThreadSafety/DirChdir:
+  Exclude:
+    - 'spec/e2e/support/**/*'

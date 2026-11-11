@@ -21,6 +21,8 @@ gem "rbs", require: false
 gem "rspec", "~> 3.0"
 gem "rubocop"
 gem "rubygems-generate_index", require: false
-gem "sharp_style_rubocop"
+group :development do
+  gem "sharp_style_rubocop"
+end
 gem "simplecov", require: false
 gem "steep", require: false
